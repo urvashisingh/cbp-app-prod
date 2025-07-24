@@ -11,6 +11,7 @@ on:
           application releases. Refer to
           https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest
           for the expected format
+
 metadata:
   stages/v1alpha1:
     - name: us-test
