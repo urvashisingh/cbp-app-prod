@@ -1,0 +1,33 @@
+name: GitHub Actions Demo2
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on: 
+  push:
+  pull_request:
+    types:
+      - opened
+      - reopened
+  workflow_dispatch:
+    inputs:
+      str:
+        required: false
+jobs:
+  Job-One:
+    name: Job-One
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The workflow definition resides in main"
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: echo "str_param default defined ${{ inputs.str_param }}"
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+      - name: Get push event details
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "Pusher: ${{ github.event.pusher.name }}"
+  Job-two:
+    name: Job / two
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The workflow definition resides in main"         
+  
