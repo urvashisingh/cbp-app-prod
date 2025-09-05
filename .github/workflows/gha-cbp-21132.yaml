@@ -30,9 +30,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The workflow definition resides in main"
-  downstream.LEMUR09T_BRANCH_18_145.Build+(No+Sizing)+(4612a0-roml/config_sdio_release):
-    name: downstream.LEMUR09T_BRANCH_18_145.Build+(No+Sizing)+(4612a0-roml/config_sdio_release)
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "🎉 The workflow definition resides in main"
   
