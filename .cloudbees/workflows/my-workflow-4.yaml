@@ -16,6 +16,7 @@ metadata:
     - name: us-test
       jobs:
         - deploy-to-us-test
+        - approve
     - name: us-prod
       jobs:
         - deploy-to-us-prod
@@ -32,20 +33,28 @@ jobs:
       - name: Step 2
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
-        run: echo "Step 2"   
+        run: echo "Step 2"
   deploy-to-us-prod:
-    needs:
-      - deploy-to-us-test
+    needs: approve
     steps:
       - name: Deploy to us-prod
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to us-prod"
   deploy-to-us-env:
-    needs:
-      - deploy-to-us-prod
+    needs: deploy-to-us-prod
     steps:
       - name: Deploy to us-env
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to us-env"
+  approve:
+    needs:
+      - deploy-to-us-test
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: ""
+      notifyAllEligibleUsers: false
