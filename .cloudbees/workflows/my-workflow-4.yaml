@@ -1,0 +1,47 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: My workflow
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        type: string
+        required: true
+        description: This is a system-generated parameter and is required for use in
+          application releases. Refer to
+          https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest
+          for the expected format
+metadata:
+  stages/v1alpha1:
+    - name: us-test
+      jobs:
+        - deploy-to-us-test
+    - name: us-prod
+      jobs:
+        - deploy-to-us-prod
+    - name: us-env
+      jobs:
+        - deploy-to-us-env
+jobs:
+  deploy-to-us-test:
+    steps:
+      - name: Deploy to us-test
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: echo "Deploying to us-test"
+  deploy-to-us-prod:
+    needs:
+      - deploy-to-us-test
+    steps:
+      - name: Deploy to us-prod
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: echo "Deploying to us-prod"
+  deploy-to-us-env:
+    needs:
+      - deploy-to-us-prod
+    steps:
+      - name: Deploy to us-env
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: echo "Deploying to us-env"
