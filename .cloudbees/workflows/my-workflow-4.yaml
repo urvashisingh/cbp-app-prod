@@ -25,10 +25,14 @@ metadata:
 jobs:
   deploy-to-us-test:
     steps:
-      - name: Deploy to us-test
+      - name: Step 1
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
-        run: echo "Deploying to us-test"
+        run: echo "Step 1"
+      - name: Step 2
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: echo "Step 2"   
   deploy-to-us-prod:
     needs:
       - deploy-to-us-test
