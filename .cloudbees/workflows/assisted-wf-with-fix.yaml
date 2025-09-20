@@ -1,0 +1,47 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: assisted-wf-with-fix
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        type: string
+        required: true
+        description: This is a system-generated parameter and is required for use in
+          application releases. Refer to
+          https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest
+          for the expected format
+metadata:
+  stages/v1alpha1:
+    - name: us-test
+      jobs:
+        - us-test
+    - name: us-prod
+      jobs:
+        - us-prod
+    - name: us-env
+      jobs:
+        - us-env
+jobs:
+  us-test:
+    environment: us-test
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ cloudbees.job.environment }}
+  us-prod:
+    needs:
+      - us-test
+    environment: us-prod
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ cloudbees.job.environment }}
+  us-env:
+    needs:
+      - us-prod
+    environment: us-env
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ cloudbees.job.environment }}
