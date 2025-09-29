@@ -18,11 +18,8 @@ metadata:
         - us-test
     - name: us-prod
       jobs:
-        - us-prod
         - approve-prod-deployment
-    - name: us-env
-      jobs:
-        - us-env
+        - us-prod
 jobs:
   us-test:
     environment: us-test
@@ -31,22 +28,15 @@ jobs:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-prod:
-    needs: us-test
-    environment: us-prod
-    uses: ./.cloudbees/workflows/deployer.yaml
-    with:
-      manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
-  us-env:
     needs: approve-prod-deployment
-    environment: us-env
+    environment: us-prod
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   approve-prod-deployment:
     needs:
-      - us-prod
+      - us-test
     timeout-minutes: 4320
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
     with:
