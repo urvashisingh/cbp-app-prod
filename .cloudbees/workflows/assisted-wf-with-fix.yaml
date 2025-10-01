@@ -16,9 +16,9 @@ metadata:
     - name: us-test
       jobs:
         - us-test
+        - approve-prod-deployment
     - name: us-prod
       jobs:
-        - approve-prod-deployment
         - us-prod
 jobs:
   us-test:
