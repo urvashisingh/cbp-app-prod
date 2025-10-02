@@ -1,0 +1,1245 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: Release Workflow
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        type: string
+        required: true
+        description: This is a system-generated parameter and is required for use in
+          application releases. Refer to
+          https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest
+          for the expected format
+metadata:
+  stages/v1alpha1:
+    - name: Release Readiness
+      jobs:
+        - create-release-issue
+        - gather-evidence
+        - quality-checks
+        - update-jira-tickets
+        - approval
+    - name: Quality Assurance
+      jobs:
+        - deploy-to-qa
+        - enable-feature-flags-qa
+        - run-tests-qa
+        - exit-criteria-qa
+    - name: Staging
+      jobs:
+        - release-manager-approval
+        - deploy-to-staging
+        - enable-feature-flags-staging
+        - run-tests-staging
+        - exit-criteria-staging
+        - create-snow-change-request
+    - name: Production
+      jobs:
+        - wait-for-snow-change-request
+        - deploy-to-prod
+        - run-smoke-tests
+        - roll-out-feature-flags
+jobs:
+  create-release-issue:
+    outputs:
+      issue-key: ${{ steps.create-release-issue.outputs.issue-key }}
+      issue-url: ${{ steps.create-release-issue.outputs.issue-url }}
+    steps:
+      - uses: https://github.com/cloudbees-days/jira-create-issue
+        id: create-release-issue
+        with:
+          jira-url: ${{ secrets.JIRA_URL }}
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          project-key: UDEMO
+          issue-type: Task
+          issue-fields: >
+            summary: "Release ${{ cloudbees.scm.repository}} #${{
+            cloudbees.run_number }}"
+
+            description: |
+              Initializing release of ${{ cloudbees.scm.repository}} #${{ cloudbees.run_number }}
+      - name: Report release issue creation
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: >-
+            ## Release Issue Created
+
+
+            **Release Issue:** ${{ steps.create-release-issue.outputs.issue-key
+            }}
+
+            **URL:** ${{ steps.create-release-issue.outputs.issue-url }}
+          format: MARKDOWN
+  gather-evidence:
+    needs:
+      - create-release-issue
+    outputs:
+      issues: ${{ steps.get-issues.outputs.issues }}
+      total: ${{ steps.get-issues.outputs.total }}
+      issues-table: ${{ steps.format-issues.outputs.issues-table }}
+    steps:
+      - uses: https://github.com/cloudbees-days/jira-get-issues
+        id: get-issues
+        name: Get Jira Tickets
+        with:
+          jira-url: ${{ secrets.JIRA_URL }}
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          jql: project = "UDEMO" AND status != "Done" ORDER BY created DESC
+          fields: summary,status,assignee,created
+          max-results: "20"
+      - uses: https://github.com/cloudbees-io/checkout@v1
+        name: Checkout Hackers Web
+        id: checkout-hackers-web
+        with:
+          repository: cloudbees-days/hackers-web
+      - uses: https://github.com/cloudbees-io/checkout@v1
+        name: Checkout Hackers Auth
+        id: checkout-hackers-auth
+        with:
+          repository: cloudbees-days/hackers-auth
+      - uses: https://github.com/cloudbees-io/checkout@v1
+        name: Checkout Hackers API
+        id: checkout-hackers-api
+        with:
+          repository: cloudbees-days/hackers-api
+      - name: Format issues as table
+        uses: docker://alpine:3.19
+        id: format-issues
+        run: >
+          # Install jq for JSON parsing
+
+          apk add --no-cache jq
+
+
+          # Create markdown table from JSON
+
+          echo 'issues-table<<EOF' >> $CLOUDBEES_OUTPUTS/issues-table
+
+          echo '| Key | Summary | Status | Priority |' >>
+          $CLOUDBEES_OUTPUTS/issues-table
+
+          echo '|-----|---------|--------|----------|' >>
+          $CLOUDBEES_OUTPUTS/issues-table
+
+
+          # Parse JSON and format as table rows
+
+          echo '${{ steps.get-issues.outputs.issues }}' | jq -r '.[] | 
+            "| " + .key + " | " + .fields.summary + " | " + .fields.status.name + " | " + .fields.priority.name + " |"' >> $CLOUDBEES_OUTPUTS/issues-table
+
+          echo 'EOF' >> $CLOUDBEES_OUTPUTS/issues-table
+      - name: Report evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            # Evidence report
+            ## Release Issue
+            ${{ needs.create-release-issue.outputs.issue-key }}
+            ${{ needs.create-release-issue.outputs.issue-url }}
+
+            ## Jira Tickets
+            ${{ steps.format-issues.outputs.issues-table }}
+
+            ## Repositories
+            ${{ steps.checkout-hackers-web.outputs.commit-url}}
+            ${{ steps.checkout-hackers-auth.outputs.commit-url}}
+            ${{ steps.checkout-hackers-api.outputs.commit-url}}
+          format: MARKDOWN
+  quality-checks:
+    needs:
+      - gather-evidence
+    outputs:
+      security-scan-results: ${{ steps.security-scan.outputs.results }}
+      code-quality-score: ${{ steps.code-analysis.outputs.quality-score }}
+      dependency-vulnerabilities: ${{ steps.dependency-check.outputs.vulnerabilities }}
+    steps:
+      - name: Security Vulnerability Scan
+        id: security-scan
+        uses: docker://alpine:3.19
+        run: |
+          apk add --no-cache curl jq
+
+          # Simulate security scan results
+          cat > scan_results.json << 'EOF'
+          {
+            "scan_id": "sec-scan-$(date +%s)",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
+            "critical": 0,
+            "high": 2,
+            "medium": 7,
+            "low": 23,
+            "info": 45,
+            "total": 77,
+            "findings": [
+              {
+                "severity": "HIGH",
+                "title": "Outdated SSL/TLS Configuration",
+                "description": "TLS 1.1 still enabled, should enforce TLS 1.2+",
+                "file": "nginx.conf",
+                "remediation": "Update SSL configuration to disable TLS 1.1"
+              },
+              {
+                "severity": "HIGH", 
+                "title": "Missing Security Headers",
+                "description": "X-Frame-Options header not configured",
+                "file": "server configuration",
+                "remediation": "Add X-Frame-Options: DENY header"
+              }
+            ]
+          }
+          EOF
+
+          cat scan_results.json > $CLOUDBEES_OUTPUTS/results
+      - name: Code Quality Analysis
+        id: code-analysis
+        uses: docker://node:22-alpine
+        run: |
+          # Simulate code quality metrics
+          QUALITY_SCORE=88
+          echo "$QUALITY_SCORE" > $CLOUDBEES_OUTPUTS/quality-score
+
+          echo "Running ESLint analysis..."
+          sleep 2
+          echo "✓ Code style compliance: 94%"
+          echo "✓ Complexity score: $QUALITY_SCORE/100"
+          echo "✓ Test coverage: 87.3%"
+          echo "✓ Maintainability index: A"
+      - name: Dependency Vulnerability Check
+        id: dependency-check
+        uses: docker://node:22-alpine
+        run: |
+          # Simulate dependency scan
+          echo "Scanning npm dependencies..."
+          sleep 3
+
+          cat > vulnerabilities.json << 'EOF'
+          {
+            "audit_summary": {
+              "vulnerabilities": {
+                "info": 0,
+                "low": 3,
+                "moderate": 1,
+                "high": 0,
+                "critical": 0,
+                "total": 4
+              }
+            },
+            "advisories": [
+              {
+                "severity": "moderate",
+                "title": "Regular Expression Denial of Service",
+                "module_name": "semver",
+                "vulnerable_versions": "<7.5.2",
+                "patched_versions": ">=7.5.2"
+              }
+            ]
+          }
+          EOF
+
+          cat vulnerabilities.json > $CLOUDBEES_OUTPUTS/vulnerabilities
+
+          echo "✓ 0 critical vulnerabilities found"
+          echo "✓ 1 moderate vulnerability found (non-blocking)"
+      - name: Publish Quality Gate Evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: >
+            # Quality Gate Results
+
+
+            ## Security Scan
+
+            - **Critical**: 0
+
+            - **High**: 2
+
+            - **Medium**: 7
+
+            - **Low**: 23
+
+            - **Total Issues**: 77
+
+
+            ## Code Quality
+
+            - **Quality Score**: ${{ steps.code-analysis.outputs.quality-score
+            }}/100
+
+            - **Test Coverage**: 87.3%
+
+            - **Code Style Compliance**: 94%
+
+            - **Maintainability**: Grade A
+
+
+            ## Dependency Security
+
+            - **Critical Vulnerabilities**: 0
+
+            - **High Vulnerabilities**: 0
+
+            - **Moderate Vulnerabilities**: 1
+
+            - **Low Vulnerabilities**: 3
+
+
+            **Quality Gate**: PASSED - No blocking issues found
+          format: MARKDOWN
+  update-jira-tickets:
+    needs:
+      - quality-checks
+      - create-release-issue
+      - gather-evidence
+    steps:
+      - name: Updating Jira tickets
+        uses: https://github.com/cloudbees-days/jira-add-comment
+        with:
+          jira-url: ${{ secrets.JIRA_URL }}
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          issue-key: ${{ needs.create-release-issue.outputs.issue-key }}
+          comment: |
+            Quality checks passed.
+
+            ## Outstanding Jira Tickets
+            ${{ needs.gather-evidence.outputs.issues-table }}
+  approval:
+    needs:
+      - update-jira-tickets
+    timeout-minutes: 4320
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+  deploy-to-qa:
+    needs:
+      - approval
+    uses: cloudbees-days/hackers-app/.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: hackers-qa
+    secrets: inherit
+    vars: inherit
+  enable-feature-flags-qa:
+    environment: hackers-qa
+    needs:
+      - deploy-to-qa
+    steps:
+      - name: Update flag configuration
+        uses: https://github.com/cloudbees-days/fm-update-flag
+        id: config-update
+        with:
+          token: ${{ secrets.UNIFY_TOKEN }}
+          org-id: ${{ vars.ORG_ID }}
+          application-name: hackers-app
+          environment-name: hackers-qa
+          flag-name: default.score
+          use-org-as-app: true
+          flag-config: |
+            enabled: true
+            defaultValue: true
+      - name: Publish evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |-
+            ## Flag Configuration Updated
+
+            **Flag ID:** ${{ steps.config-update.outputs.flag-id }}
+            **Update Success:** ${{ steps.config-update.outputs.success }}
+
+            **Applied Configuration:**
+            ```json
+            ${{ steps.config-update.outputs.configuration }}
+            ```
+
+            ✅ Flag configuration update successful
+          format: MARKDOWN
+  run-tests-qa:
+    environment: hackers-qa
+    needs:
+      - enable-feature-flags-qa
+    outputs:
+      test-results: ${{ steps.test-execution.outputs.results }}
+      test-coverage: ${{ steps.test-execution.outputs.coverage }}
+      performance-metrics: ${{ steps.performance-tests.outputs.metrics }}
+    steps:
+      - name: Setup Test Environment
+        uses: docker://node:22-alpine
+        run: |
+          echo "Setting up QA test environment..."
+          echo "✓ Test database initialized"
+          echo "✓ Mock services started"
+          echo "✓ Test data seeded"
+      - name: Run Unit & Integration Tests
+        id: test-execution
+        uses: docker://node:22-alpine
+        run: >
+          echo "Running comprehensive test suite..."
+
+          sleep 5
+
+
+          # Simulate test execution
+
+          TOTAL_TESTS=247
+
+          PASSED_TESTS=239
+
+          FAILED_TESTS=8
+
+          SKIPPED_TESTS=0
+
+          COVERAGE=87
+
+
+          echo "=== Test Results ==="
+
+          echo "Total Tests: $TOTAL_TESTS"
+
+          echo "Passed: $PASSED_TESTS ✓"
+
+          echo "Failed: $FAILED_TESTS ✗"
+
+          echo "Skipped: $SKIPPED_TESTS"
+
+          echo "Success Rate: $(( PASSED_TESTS * 100 / TOTAL_TESTS ))%"
+
+          echo "Coverage: ${COVERAGE}%"
+
+
+          # Output results
+
+          cat > test_results.json << EOF
+
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
+            "total": $TOTAL_TESTS,
+            "passed": $PASSED_TESTS,
+            "failed": $FAILED_TESTS,
+            "skipped": $SKIPPED_TESTS,
+            "success_rate": $(( PASSED_TESTS * 100 / TOTAL_TESTS )),
+            "coverage": $COVERAGE,
+            "test_suites": [
+              {"name": "Web Service", "tests": 45, "passed": 43, "failed": 2},
+              {"name": "Auth Service", "tests": 89, "passed": 85, "failed": 4},
+              {"name": "API Service", "tests": 67, "passed": 65, "failed": 2},
+              {"name": "Service Integration", "tests": 46, "passed": 46, "failed": 0}
+            ]
+          }
+
+          EOF
+
+
+          cat test_results.json > $CLOUDBEES_OUTPUTS/results
+
+          echo "$COVERAGE" > $CLOUDBEES_OUTPUTS/coverage
+      - name: Run Performance Tests
+        id: performance-tests
+        uses: docker://alpine:3.20
+        run: |
+          echo "Running performance and load tests..."
+          sleep 4
+
+          # Simulate performance metrics
+          RESPONSE_TIME=180
+          THROUGHPUT=950
+          CPU_USAGE=45
+          MEMORY_USAGE=55
+
+          echo "=== Performance Metrics ==="
+          echo "Average Response Time: ${RESPONSE_TIME}ms"
+          echo "Throughput: ${THROUGHPUT} req/sec"
+          echo "CPU Usage: ${CPU_USAGE}%"
+          echo "Memory Usage: ${MEMORY_USAGE}%"
+          echo "✓ All performance thresholds met"
+
+          cat > performance.json << EOF
+          {
+            "response_time_ms": $RESPONSE_TIME,
+            "throughput_rps": $THROUGHPUT,
+            "cpu_usage_percent": $CPU_USAGE,
+            "memory_usage_percent": $MEMORY_USAGE,
+            "thresholds_met": true
+          }
+          EOF
+
+          cat performance.json > $CLOUDBEES_OUTPUTS/metrics
+      - name: Publish Test Evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            # QA Test Results
+
+            ## Functional Tests
+            - **Total Tests**: 247
+            - **Passed**: 239
+            - **Failed**: 8
+            - **Success Rate**: 96.8%
+            - **Code Coverage**: ${{ steps.test-execution.outputs.coverage }}%
+
+            ## Test Suite Breakdown
+            | Suite | Total | Passed | Failed |
+            |-------|-------|--------|--------|
+            | Web Service | 45 | 43 | 2 |
+            | Auth Service | 89 | 85 | 4 |
+            | API Service | 67 | 65 | 2 |
+            | Service Integration | 46 | 46 | 0 |
+
+            ## Performance Tests
+            - **Response Time**: Average 180ms
+            - **Throughput**: 950 requests/sec
+            - **Resource Usage**: CPU 45%, Memory 55%
+
+            **QA Test Gate**: PASSED - Ready for staging
+          format: MARKDOWN
+  exit-criteria-qa:
+    environment: hackers-qa
+    needs:
+      - run-tests-qa
+    outputs:
+      gate-status: ${{ steps.evaluate-criteria.outputs.status }}
+      blocking-issues: ${{ steps.check-issues.outputs.blocking-count }}
+    steps:
+      - name: Evaluate Test Results
+        id: evaluate-criteria
+        uses: docker://alpine:3.20
+        run: >
+          apk add --no-cache jq
+
+
+          # Parse test results from previous job
+
+          echo '${{ needs.run-tests-qa.outputs.test-results }}' >
+          test_results.json
+
+
+          TOTAL=$(jq -r '.total' test_results.json)
+
+          PASSED=$(jq -r '.passed' test_results.json)
+
+          SUCCESS_RATE=$(jq -r '.success_rate' test_results.json)
+
+          COVERAGE=${{ needs.run-tests-qa.outputs.test-coverage }}
+
+
+          echo "=== QA Exit Criteria Evaluation ==="
+
+          echo "Test Success Rate: ${SUCCESS_RATE}% (Required: ≥75%)"
+
+          echo "Code Coverage: ${COVERAGE}% (Required: ≥80%)"
+
+
+          # Evaluate criteria
+
+          if [ $SUCCESS_RATE -ge 75 ] && [ $COVERAGE -ge 80 ]; then
+            echo "✅ All test criteria met"
+            echo "PASSED" > $CLOUDBEES_OUTPUTS/status
+          else
+            echo "❌ Test criteria not met"
+            echo "FAILED" > $CLOUDBEES_OUTPUTS/status
+          fi
+      - name: Check Critical Issues
+        id: check-issues
+        uses: docker://alpine:3.20
+        run: |
+          apk add --no-cache curl jq
+
+          # Simulate checking for P1/P2 issues in issue tracker
+          echo "Checking for blocking issues..."
+          sleep 2
+
+          # Simulate issue query results
+          P1_ISSUES=0
+          P2_ISSUES=0
+          BLOCKING_TOTAL=$(( P1_ISSUES + P2_ISSUES ))
+
+          echo "P1 Critical Issues: $P1_ISSUES"
+          echo "P2 High Priority Issues: $P2_ISSUES"
+          echo "Total Blocking Issues: $BLOCKING_TOTAL"
+
+          echo "$BLOCKING_TOTAL" > $CLOUDBEES_OUTPUTS/blocking-count
+
+          if [ $BLOCKING_TOTAL -eq 0 ]; then
+            echo "✅ No blocking issues found"
+          else
+            echo "⚠️ $BLOCKING_TOTAL blocking issues require attention"
+          fi
+      - name: Performance Threshold Check
+        uses: docker://alpine:3.20
+        run: >
+          apk add --no-cache jq
+
+
+          echo '${{ needs.run-tests-qa.outputs.performance-metrics }}' >
+          performance.json
+
+
+          RESPONSE_TIME=$(jq -r '.response_time_ms' performance.json)
+
+          CPU_USAGE=$(jq -r '.cpu_usage_percent' performance.json)
+
+          MEMORY_USAGE=$(jq -r '.memory_usage_percent' performance.json)
+
+
+          echo "=== Performance Thresholds ==="
+
+          echo "Response Time: ${RESPONSE_TIME}ms (Threshold: ≤500ms)"
+
+          echo "CPU Usage: ${CPU_USAGE}% (Threshold: ≤80%)"
+
+          echo "Memory Usage: ${MEMORY_USAGE}% (Threshold: ≤85%)"
+
+
+          if [ $RESPONSE_TIME -le 500 ] && [ $CPU_USAGE -le 80 ] && [
+          $MEMORY_USAGE -le 85 ]; then
+            echo "✅ All performance thresholds met"
+          else
+            echo "⚠️ Performance thresholds exceeded"
+          fi
+      - name: Publish Exit Criteria Evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: >
+            # QA Exit Criteria Assessment
+
+
+            ## Test Quality Gate
+
+            - **Success Rate**: 96.8% (Required: ≥75%)
+
+            - **Code Coverage**: ${{ needs.run-tests-qa.outputs.test-coverage
+            }}% (Required: ≥80%)
+
+            - **Gate Status**: ${{ steps.evaluate-criteria.outputs.status }}
+
+
+            ## Issue Analysis
+
+            - **P1 Critical Issues**: 0
+
+            - **P2 High Priority**: ${{
+            steps.check-issues.outputs.blocking-count }} 
+
+            - **Blocking Issues**: ${{ steps.check-issues.outputs.blocking-count
+            }} total
+
+
+            ## Performance Validation
+
+            - **Response Time**: <500ms
+
+            - **Resource Usage**: Within limits
+
+            - **Load Testing**: Passed
+
+
+            **QA Exit Criteria**: PASSED - Ready for Release Manager approval
+          format: MARKDOWN
+  release-manager-approval:
+    needs:
+      - exit-criteria-qa
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: ""
+      notifyAllEligibleUsers: false
+  deploy-to-staging:
+    needs:
+      - release-manager-approval
+    uses: cloudbees-days/hackers-app/.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: hackers-staging
+    secrets: inherit
+    vars: inherit
+  enable-feature-flags-staging:
+    environment: hackers-staging
+    needs:
+      - deploy-to-staging
+    steps:
+      - name: Update flag configuration
+        uses: https://github.com/cloudbees-days/fm-update-flag
+        id: config-update
+        with:
+          token: ${{ secrets.UNIFY_TOKEN }}
+          org-id: ${{ vars.ORG_ID }}
+          application-name: hackers-app
+          environment-name: hackers-staging
+          flag-name: default.score
+          use-org-as-app: true
+          flag-config: |
+            enabled: true
+            defaultValue: true
+      - name: Publish evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |-
+            ## Flag Configuration Updated
+
+            **Flag ID:** ${{ steps.config-update.outputs.flag-id }}
+            **Update Success:** ${{ steps.config-update.outputs.success }}
+
+            **Applied Configuration:**
+            ```json
+            ${{ steps.config-update.outputs.configuration }}
+            ```
+
+            ✅ Flag configuration update successful
+          format: MARKDOWN
+  run-tests-staging:
+    environment: hackers-staging
+    needs:
+      - enable-feature-flags-staging
+    outputs:
+      test-results: ${{ steps.staging-tests.outputs.results }}
+      e2e-results: ${{ steps.e2e-tests.outputs.results }}
+    steps:
+      - name: Run Staging Test Suite
+        id: staging-tests
+        uses: docker://node:18-alpine
+        run: >
+          echo "Running comprehensive staging test suite..."
+
+          sleep 6
+
+
+          # Simulate more comprehensive staging tests
+
+          TOTAL_TESTS=342
+
+          PASSED_TESTS=340
+
+          FAILED_TESTS=2
+
+          COVERAGE=92
+
+
+          echo "=== Staging Test Results ==="
+
+          echo "Total Tests: $TOTAL_TESTS"
+
+          echo "Passed: $PASSED_TESTS ✓"
+
+          echo "Failed: $FAILED_TESTS ✗"
+
+          echo "Success Rate: $(( PASSED_TESTS * 100 / TOTAL_TESTS ))%"
+
+          echo "Coverage: ${COVERAGE}%"
+
+
+          cat > staging_results.json << EOF
+
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
+            "total": $TOTAL_TESTS,
+            "passed": $PASSED_TESTS,
+            "failed": $FAILED_TESTS,
+            "success_rate": $(( PASSED_TESTS * 100 / TOTAL_TESTS )),
+            "coverage": $COVERAGE,
+            "test_suites": [
+              {"name": "Web Service Integration", "tests": 98, "passed": 98, "failed": 0},
+              {"name": "Auth Service Integration", "tests": 76, "passed": 76, "failed": 0},
+              {"name": "API Service Integration", "tests": 54, "passed": 52, "failed": 2},
+              {"name": "Cross-Service Communication", "tests": 67, "passed": 67, "failed": 0},
+              {"name": "Feature Flag Tests", "tests": 47, "passed": 47, "failed": 0}
+            ]
+          }
+
+          EOF
+
+
+          cat staging_results.json > $CLOUDBEES_OUTPUTS/results
+      - name: End-to-End Tests
+        id: e2e-tests
+        uses: docker://mcr.microsoft.com/playwright:v1.40.0-focal
+        run: >
+          echo "Running end-to-end user journey tests..."
+
+          sleep 8
+
+
+          # Simulate E2E test scenarios
+
+          SCENARIOS=24
+
+          PASSED_SCENARIOS=23
+
+          FAILED_SCENARIOS=1
+
+
+          echo "=== E2E Test Scenarios ==="
+
+          echo "Total Scenarios: $SCENARIOS"
+
+          echo "Passed: $PASSED_SCENARIOS ✓"
+
+          echo "Failed: $FAILED_SCENARIOS ✗"
+
+          echo "Success Rate: $(( PASSED_SCENARIOS * 100 / SCENARIOS ))%"
+
+
+          echo "✓ User Registration Flow"
+
+          echo "✓ Authentication & Login"
+
+          echo "✓ Core Application Features"
+
+          echo "✓ Payment Processing"
+
+          echo "✓ Data Export/Import"
+
+          echo "⚠ Cross-browser Compatibility (1 failure)"
+
+
+          cat > e2e_results.json << EOF
+
+          {
+            "scenarios": $SCENARIOS,
+            "passed": $PASSED_SCENARIOS,
+            "failed": $FAILED_SCENARIOS,
+            "success_rate": $(( PASSED_SCENARIOS * 100 / SCENARIOS )),
+            "user_journeys": [
+              {"name": "Registration", "status": "passed"},
+              {"name": "Authentication", "status": "passed"},
+              {"name": "Core Features", "status": "passed"},
+              {"name": "Payments", "status": "passed"},
+              {"name": "Data Operations", "status": "passed"},
+              {"name": "Cross-browser", "status": "failed", "issue": "Safari compatibility"}
+            ]
+          }
+
+          EOF
+
+
+          cat e2e_results.json > $CLOUDBEES_OUTPUTS/results
+      - name: Publish Staging Test Evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            # Staging Test Results
+
+            ## Comprehensive Test Suite
+            - **Total Tests**: 342
+            - **Passed**: 340
+            - **Failed**: 2
+            - **Success Rate**: 99.4%
+            - **Coverage**: 92%
+
+            ## Test Suite Breakdown
+            | Suite | Total | Passed | Failed |
+            |-------|-------|--------|--------|
+            | Web Service Integration | 98 | 98 | 0 |
+            | Auth Service Integration | 76 | 76 | 0 |
+            | API Service Integration | 54 | 52 | 2 |
+            | Cross-Service Communication | 67 | 67 | 0 |
+            | Feature Flag Tests | 47 | 47 | 0 |
+
+            ## End-to-End Scenarios
+            - **User Journeys**: 23/24 passed (95.8%)
+            - **Cross-browser**: 1 Safari compatibility issue
+            - **Core Flows**: All critical paths validated
+
+            **Staging Gate**: PASSED - Ready for production consideration
+          format: MARKDOWN
+  exit-criteria-staging:
+    environment: hackers-staging
+    needs:
+      - run-tests-staging
+    outputs:
+      production-readiness: ${{ steps.readiness-check.outputs.status }}
+      risk-assessment: ${{ steps.risk-analysis.outputs.level }}
+    steps:
+      - name: Production Readiness Assessment
+        id: readiness-check
+        uses: docker://alpine:3.20
+        run: >
+          apk add --no-cache jq
+
+
+          # Parse staging test results
+
+          echo '${{ needs.run-tests-staging.outputs.test-results }}' >
+          staging_results.json
+
+          echo '${{ needs.run-tests-staging.outputs.e2e-results }}' >
+          e2e_results.json
+
+
+          STAGING_SUCCESS=$(jq -r '.success_rate' staging_results.json)
+
+          E2E_SUCCESS=$(jq -r '.success_rate' e2e_results.json)
+
+
+          echo "=== Production Readiness Criteria ==="
+
+          echo "Staging Tests: ${STAGING_SUCCESS}% (Required: ≥99%)"
+
+          echo "E2E Scenarios: ${E2E_SUCCESS}% (Required: ≥95%)"
+
+
+          # Check readiness criteria
+
+          if [ $STAGING_SUCCESS -ge 99 ] && [ $E2E_SUCCESS -ge 95 ]; then
+            echo "✅ Production readiness criteria met"
+            echo "READY" > $CLOUDBEES_OUTPUTS/status
+          else
+            echo "❌ Production readiness criteria not met"
+            echo "NOT_READY" > $CLOUDBEES_OUTPUTS/status
+          fi
+      - name: Risk Analysis
+        id: risk-analysis
+        uses: docker://alpine:3.19
+        run: |
+          # Simulate risk assessment
+          echo "Performing release risk analysis..."
+          sleep 3
+
+          # Calculate risk factors
+          DEPLOYMENT_RISK="LOW"
+          ROLLBACK_COMPLEXITY="SIMPLE"
+          BUSINESS_IMPACT="MEDIUM"
+          TECHNICAL_DEBT="LOW"
+
+          echo "=== Risk Assessment ==="
+          echo "Deployment Risk: $DEPLOYMENT_RISK"
+          echo "Rollback Complexity: $ROLLBACK_COMPLEXITY"
+          echo "Business Impact: $BUSINESS_IMPACT"
+          echo "Technical Debt: $TECHNICAL_DEBT"
+
+          # Overall risk level
+          RISK_LEVEL="LOW"
+          echo "Overall Risk Level: $RISK_LEVEL"
+          echo "$RISK_LEVEL" > $CLOUDBEES_OUTPUTS/level
+      - name: Business Impact Validation
+        uses: docker://alpine:3.19
+        run: |
+          echo "Validating business impact and stakeholder signoff..."
+          sleep 2
+
+          echo "✅ Feature specifications validated"
+          echo "✅ Stakeholder approval received"
+          echo "✅ Customer impact assessment complete"
+          echo "✅ Support team notified"
+          echo "✅ Documentation updated"
+      - name: Infrastructure Readiness
+        uses: docker://alpine:3.19
+        run: |
+          echo "Checking production infrastructure readiness..."
+          sleep 2
+
+          # Simulate infrastructure checks
+          CPU_CAPACITY=73
+          MEMORY_USAGE=45
+          DISK_SPACE=68
+          NETWORK_LATENCY=12
+
+          echo "=== Infrastructure Status ==="
+          echo "CPU Capacity: ${CPU_CAPACITY}% available"
+          echo "Memory Usage: ${MEMORY_USAGE}%"
+          echo "Disk Space: ${DISK_SPACE}% used"
+          echo "Network Latency: ${NETWORK_LATENCY}ms"
+
+          echo "✅ Production infrastructure ready"
+          echo "✅ Auto-scaling configured"
+          echo "✅ Monitoring alerts active"
+          echo "✅ Backup systems verified"
+      - name: Publish Production Readiness Evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: >
+            # Staging Exit Criteria & Production Readiness
+
+
+            ## Test Validation
+
+            - **Staging Success Rate**: 99.4% (Required: ≥99%)
+
+            - **E2E Success Rate**: 95.8% (Required: ≥95%)
+
+            - **Critical Path Coverage**: 100%
+
+            - **Performance Thresholds**: Met
+
+
+            ## Risk Assessment
+
+            - **Overall Risk Level**: ${{ steps.risk-analysis.outputs.level }}
+
+            - **Deployment Risk**: LOW
+
+            - **Rollback Plan**: READY
+
+            - **Business Impact**: Validated
+
+
+            ## Infrastructure Readiness
+
+            - **Production Capacity**: 73% available
+
+            - **Monitoring**: Active
+
+            - **Auto-scaling**: Configured
+
+            - **Backup Systems**: Verified
+
+
+            ## Business Validation
+
+            - **Stakeholder Approval**: Complete
+
+            - **Documentation**: Updated
+
+            - **Support Team**: Notified
+
+
+            **Production Readiness**: ${{ steps.readiness-check.outputs.status
+            }}
+          format: MARKDOWN
+  create-snow-change-request:
+    needs:
+      - exit-criteria-staging
+    steps:
+      - run: echo "TODO"
+        uses: docker://golang
+  wait-for-snow-change-request:
+    needs:
+      - create-snow-change-request
+    steps:
+      - run: echo "TODO"
+        uses: docker://golang
+  deploy-to-prod:
+    needs:
+      - wait-for-snow-change-request
+    uses: cloudbees-days/hackers-app/.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: hackers-prod
+    secrets: inherit
+    vars: inherit
+  run-smoke-tests:
+    environment: hackers-prod
+    needs:
+      - deploy-to-prod
+    outputs:
+      health-status: ${{ steps.health-check.outputs.status }}
+      smoke-results: ${{ steps.smoke-tests.outputs.results }}
+    steps:
+      - name: Production Health Check
+        id: health-check
+        uses: docker://alpine:3.19
+        run: >
+          apk add --no-cache curl jq
+
+
+          echo "Checking production service health..."
+
+          sleep 3
+
+                    # Simulate health endpoint checks
+          WEB_HEALTH="UP"
+
+          AUTH_HEALTH="UP"
+
+          API_HEALTH="UP"
+
+
+          echo "=== Service Health Status ==="
+
+          echo "Web Service: $WEB_HEALTH"
+
+          echo "Auth Service: $AUTH_HEALTH"
+
+          echo "API Service: $API_HEALTH"
+
+
+          # Overall health
+
+          if [ "$WEB_HEALTH" = "UP" ] && [ "$AUTH_HEALTH" = "UP" ] && [
+          "$API_HEALTH" = "UP" ]; then
+            echo "HEALTHY" > $CLOUDBEES_OUTPUTS/status
+            echo "All systems operational"
+          else
+            echo "DEGRADED" > $CLOUDBEES_OUTPUTS/status
+            echo "Some systems experiencing issues"
+          fi
+      - name: Critical Path Smoke Tests
+        id: smoke-tests
+        uses: docker://alpine:3.19
+        run: |
+          apk add --no-cache curl jq
+
+          echo "Running critical path smoke tests..."
+          sleep 5
+
+          # Simulate smoke test execution
+          TESTS_RUN=12
+          TESTS_PASSED=12
+          TESTS_FAILED=0
+
+          echo "=== Smoke Test Results ==="
+          echo "Web Service Health: PASS"
+          echo "Auth Service Login: PASS"
+          echo "Auth Service Registration: PASS"
+          echo "API Service Endpoints: PASS"
+          echo "API Service Data Retrieval: PASS"
+          echo "Web-Auth Integration: PASS"
+          echo "Web-API Integration: PASS"
+          echo "Auth-API Integration: PASS"
+          echo "Static Asset Serving: PASS"
+          echo "API Response Times: PASS"
+          echo "Authentication Flow: PASS"
+          echo "Session Management: PASS"
+
+          cat > smoke_results.json << EOF
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
+            "total_tests": $TESTS_RUN,
+            "passed": $TESTS_PASSED,
+            "failed": $TESTS_FAILED,
+            "success_rate": $(( TESTS_PASSED * 100 / TESTS_RUN )),
+            "critical_paths": [
+              {"name": "Web Service", "status": "pass"},
+              {"name": "Auth Service", "status": "pass"},
+              {"name": "API Service", "status": "pass"},
+              {"name": "Service Integration", "status": "pass"},
+              {"name": "Authentication Flow", "status": "pass"},
+              {"name": "Session Management", "status": "pass"}
+            ]
+          }
+          EOF
+
+          cat smoke_results.json > $CLOUDBEES_OUTPUTS/results
+      - name: Performance Validation
+        uses: docker://alpine:3.19
+        run: |
+          echo "Validating production performance metrics..."
+          sleep 4
+
+          # Simulate performance monitoring
+          RESPONSE_TIME=95
+          ERROR_RATE="0.01"
+          THROUGHPUT=1650
+          CPU_USAGE=35
+
+          echo "=== Production Performance ==="
+          echo "Average Response Time: ${RESPONSE_TIME}ms"
+          echo "Error Rate: ${ERROR_RATE}%"
+          echo "Throughput: ${THROUGHPUT} req/min"
+          echo "CPU Usage: ${CPU_USAGE}%"
+
+          echo "✅ Performance within acceptable thresholds"
+      - name: User Experience Validation
+        uses: docker://alpine:3.19
+        run: |
+          echo "Validating user experience and accessibility..."
+          sleep 3
+
+          echo "=== UX Validation ==="
+          echo "✅ Page load times < 2s"
+          echo "✅ Mobile responsiveness verified"
+          echo "✅ Accessibility compliance (WCAG 2.1)"
+          echo "✅ Cross-browser compatibility"
+          echo "✅ SSL/TLS certificates valid"
+          echo "✅ CDN performance optimal"
+      - name: Security Validation
+        uses: docker://alpine:3.19
+        run: |
+          echo "Running production security validation..."
+          sleep 3
+
+          echo "=== Security Checks ==="
+          echo "✅ HTTPS enforcement active"
+          echo "✅ Security headers present"
+          echo "✅ Authentication mechanisms working"
+          echo "✅ Rate limiting configured"
+          echo "✅ Input validation active"
+          echo "✅ No sensitive data exposed"
+      - name: Publish Smoke Test Evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            # Production Smoke Test Results
+
+            ## System Health
+            - **Overall Status**: ${{ steps.health-check.outputs.status }}
+            - **Web Service**: UP
+            - **Auth Service**: UP
+            - **API Service**: UP
+
+            ## Critical Path Tests
+            - **Tests Executed**: 12/12
+            - **Success Rate**: 100%
+            - **Authentication**: PASS
+            - **Core Features**: PASS
+            - **Integrations**: PASS
+
+            ## Performance Metrics
+            - **Response Time**: <120ms
+            - **Error Rate**: <0.1%
+            - **Throughput**: 1,500+ req/min
+            - **Resource Usage**: Optimal
+
+            ## Security & UX
+            - **Security**: All checks passed
+            - **Accessibility**: WCAG 2.1 compliant
+            - **Mobile**: Responsive
+            - **SSL/TLS**: Valid certificates
+
+            **Production Smoke Tests**: PASSED - System ready for traffic
+          format: MARKDOWN
+  roll-out-feature-flags:
+    environment: hackers-prod
+    needs:
+      - run-smoke-tests
+    steps:
+      - name: Get current time
+        id: current-time
+        uses: docker://alpine:3.20
+        run: >
+          echo "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" > $CLOUDBEES_OUTPUTS/now
+
+          echo "$(date -u -d "@$(( $(date +%s) + 3600 ))"
+          +%Y-%m-%dT%H:%M:%S.000Z)" > $CLOUDBEES_OUTPUTS/one-hour
+
+          echo "$(date -u -d "@$(( $(date +%s) + 7200 ))"
+          +%Y-%m-%dT%H:%M:%S.000Z)" > $CLOUDBEES_OUTPUTS/two-hours
+      - name: Roll out flags on schedule
+        uses: https://github.com/cloudbees-days/fm-update-flag
+        id: config-update
+        with:
+          token: ${{ secrets.UNIFY_TOKEN }}
+          org-id: ${{ vars.ORG_ID }}
+          application-name: hackers-app
+          environment-name: hackers-prod
+          flag-name: default.score
+          use-org-as-app: true
+          flag-config: |
+            enabled: true
+            defaultValue:
+            - from: ${{ steps.current-time.outputs.now }}
+              percentage: 10
+            - from: ${{ steps.current-time.outputs.one-hour }}
+              percentage: 50
+            - from: ${{ steps.current-time.outputs.two-hours }}
+              percentage: 100
+      - name: Publish evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |-
+            ## Flag Configuration Updated
+
+            **Flag ID:** ${{ steps.config-update.outputs.flag-id }}
+            **Update Success:** ${{ steps.config-update.outputs.success }}
+
+            **Applied Configuration:**
+            ```json
+            ${{ steps.config-update.outputs.configuration }}
+            ```
+
+            ✅ Flag configuration update successful
+          format: MARKDOWN
