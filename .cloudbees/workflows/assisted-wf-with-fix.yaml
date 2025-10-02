@@ -42,4 +42,4 @@ jobs:
     with:
       disallowLaunchByUser: false
       notifyAllEligibleUsers: false
-      approvers: "3bbc24ac-e80d-11ea-a794-42010a83ae1a"
+      approvers: 3bbc24ac-e80d-11ea-a794-42010a83ae1a
