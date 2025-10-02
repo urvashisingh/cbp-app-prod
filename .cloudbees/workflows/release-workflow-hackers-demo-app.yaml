@@ -313,6 +313,7 @@ jobs:
     with:
       instructions: ""
       disallowLaunchByUser: false
+      approvers: "3bbc24ac-e80d-11ea-a794-42010a83ae1a"
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
   deploy-to-qa:
     needs:
