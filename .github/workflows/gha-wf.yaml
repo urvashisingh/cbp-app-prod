@@ -38,7 +38,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru2
-    ru3:
+  ru3:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru3
@@ -46,7 +46,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru4 
-    ru5:
+  ru5:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru5
@@ -54,7 +54,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru6
-    ru7:
+  ru7:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru7
@@ -62,7 +62,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru8
-    ru9:
+  ru9:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru9
@@ -70,7 +70,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru10
-    ru11:
+  ru11:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru11
@@ -78,7 +78,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru12
-    ru13:
+  ru13:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru13
@@ -86,7 +86,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru14
-    ru15:
+  ru15:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru15
@@ -94,7 +94,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru16
-    ru17:
+  ru17:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru17
@@ -102,7 +102,7 @@ jobs:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru18
-    ru19:
+  ru19:
     uses: ./.github/workflows/wf1.yaml
     with:
       str: ru19
