@@ -30,4 +30,89 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The workflow definition resides in main"         
+  ru1:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru1
+  ru2:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru2
+    ru3:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru3
+  ru4:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru4 
+    ru5:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru5
+  ru6:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru6
+    ru7:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru7
+  ru8:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru8
+    ru9:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru9
+  ru10:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru10
+    ru11:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru11
+  ru12:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru12
+    ru13:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru13
+  ru14:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru14
+    ru15:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru15
+  ru16:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru16
+    ru17:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru17
+  ru18:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru18
+    ru19:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru19
+  ru20:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru20
+  ru21:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru21     
+    
   
