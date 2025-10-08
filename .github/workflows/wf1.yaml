@@ -10,7 +10,7 @@ jobs:
     name: Job-One
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 reusable workflow called with str: ${{ inputs.str }}"
+      - run: echo "🎉 reusable workflow called"
   Job-two:
     name: Job / two
     runs-on: ubuntu-latest
