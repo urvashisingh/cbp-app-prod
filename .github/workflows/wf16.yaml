@@ -1,0 +1,19 @@
+name: reusable wf
+on: 
+  workflow_call:
+    inputs:
+      str:
+        type: string 
+        required: false
+jobs:
+  Job-One:
+    name: Job-One
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 reusable workflow called"
+  Job-two:
+    name: Job / two
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello"         
+  
