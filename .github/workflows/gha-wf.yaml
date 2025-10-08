@@ -113,6 +113,10 @@ jobs:
   ru21:
     uses: ./.github/workflows/wf1.yaml
     with:
-      str: ru21     
+      str: ru21
+  ru22:
+    uses: ./.github/workflows/wf1.yaml
+    with:
+      str: ru22       
     
   
