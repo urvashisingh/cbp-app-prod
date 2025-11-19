@@ -41,6 +41,6 @@ jobs:
             fi  
           }
 
-          get-artifact-version "${{ artifact_id }}" _out_manifest_version
+          get-artifact-version "${{ inputs.artifact_id }}" _out_manifest_version
           echo "Found version $_out_manifest_version"
 
