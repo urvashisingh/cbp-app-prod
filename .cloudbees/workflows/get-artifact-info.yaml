@@ -14,10 +14,10 @@ jobs:
       CB_API_URL: ${{ cloudbees.api.url }}
     steps:
       - name: Say hello
-        uses: docker://golang:1.20.3-alpine3.17
+        uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
         shell: sh
         run: |
-          function get_artifact_version() {
+          function get-artifact-version() {
             local artifact_id=$1
             local out_version=$2
 
@@ -41,6 +41,6 @@ jobs:
             fi  
           }
 
-          get_artifact_version "${{ inputs.artifact_id }}" _out_manifest_version
+          get-artifact-version "${{ inputs.artifact_id }}" _out_manifest_version
           echo "Found version $_out_manifest_version"
 
