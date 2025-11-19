@@ -17,7 +17,7 @@ jobs:
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: |
-          function get-artifact-version() {
+          function get_artifact_version() {
             local artifact_id=$1
             local out_version=$2
 
@@ -41,6 +41,6 @@ jobs:
             fi  
           }
 
-          get-artifact-version "${{ inputs.artifact_id }}" _out_manifest_version
+          get_artifact_version "${{ inputs.artifact_id }}" _out_manifest_version
           echo "Found version $_out_manifest_version"
 
