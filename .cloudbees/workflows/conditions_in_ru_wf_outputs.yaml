@@ -9,7 +9,7 @@ on:
         type: string
     outputs:
       out: 
-        value: ${{ inputs.job == 'job1' && jobs.job1.outputs.out || jobs.job2.outputs.out }}    
+        value: ${{ jobs.job1.outputs.out || jobs.job2.outputs.out }}    
 
 jobs:
   job1:
