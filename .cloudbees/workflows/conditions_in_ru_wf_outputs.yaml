@@ -1,0 +1,36 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: conditions_in_ru_wf_outputs
+
+on:
+  workflow_call:
+    inputs:
+      job: 
+        type: string
+    outputs:
+      out: 
+        value: ${{ inputs.job == 'job1' && jobs.job1.outputs.out || jobs.job2.outputs.out }}    
+
+jobs:
+  job1:
+    outputs:
+      out: ${{ steps.step1.outputs.out }}
+    steps:
+      - name: Say hello
+        id: step1
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "hello world"
+          echo "output from job1" > $CLOUDBEES_OUTPUTS/out
+  job2:
+    outputs:
+      out: ${{ steps.step1.outputs.out }}
+    steps:
+      - name: Say hello
+        id: step1
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "hello world"
+          echo "output from job2" > $CLOUDBEES_OUTPUTS/out      
