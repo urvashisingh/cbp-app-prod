@@ -7,10 +7,19 @@ on:
       manifest:
         type: string
         required: true
-        description: This is a system-generated parameter and is required for use in
-          application releases. Refer to
-          https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest
-          for the expected format
+        description: This is a system-generated parameter and is required for use in application releases. Refer to https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest for the expected format
+      patch-release:
+        type: boolean
+        default: false
+        description: Check if this is a patch release
+      staging-db:
+        type: choice
+        options:
+          - postgresql
+          - mysql
+        default: postgresql
+        required: true
+        description: The database to use for staging environment deployment
 metadata:
   stages/v1alpha1:
     - name: us-test
