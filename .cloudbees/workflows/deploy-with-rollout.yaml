@@ -6,25 +6,31 @@ on:
     inputs:
       manifest:
         type: string
-        required: true
       environment:
         type: string
         required: true
   workflow_dispatch:
     inputs:
-      manifest:
+      artifact-id:
         type: string
-        required: true
       environment:
         type: string
         required: true      
 jobs:
   deploy:
     vars: inherit
-    if: ${{ fromJSON(inputs.manifest)['comp1']['rollouts-demo'].deploy }}
-    uses: urvashisingh/comp1/.cloudbees/workflows/canary-deploy.yaml
+    uses: urvashisingh/comp2/.cloudbees/workflows/canary-deploy.yaml
     with:
-      artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['rollouts-demo'].id }}
+      artifact-id: ${{ inputs.artifact-id }}
       environment: ${{ inputs.environment }}
       pause: ${{ inputs.environment == 'prod' }}
+
+  #deploy:
+  #  vars: inherit
+  #  if: ${{ fromJSON(inputs.manifest)['comp1']['rollouts-demo'].deploy }}
+  #  uses: urvashisingh/comp1/.cloudbees/workflows/canary-deploy.yaml
+  #  with:
+  #    artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['rollouts-demo'].id }}
+  #    environment: ${{ inputs.environment }}
+  #    pause: ${{ inputs.environment == 'prod' }}
   
