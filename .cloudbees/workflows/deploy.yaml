@@ -18,7 +18,7 @@ on:
         required: true      
 jobs:
   deploy-using-canary:
-    if: ${{ inputs.environment == 'prod' }}
+    if: ${{ inputs.environment == 'us-prod' }}
     vars: inherit
     uses: urvashisingh/comp2/.cloudbees/workflows/deploy.yaml
     with:
@@ -26,7 +26,7 @@ jobs:
       environment: ${{ inputs.environment }}
       deployment-strategy: 'canary'
   deploy-no-canary:
-    if: ${{ inputs.environment != 'prod' }}
+    if: ${{ inputs.environment != us-prod' }}
     vars: inherit
     uses: urvashisingh/comp2/.cloudbees/workflows/deploy.yaml
     with:
