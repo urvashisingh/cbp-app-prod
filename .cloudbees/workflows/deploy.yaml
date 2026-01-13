@@ -19,7 +19,7 @@ on:
 jobs:
   deploy:
     vars: inherit
-    uses: urvashisingh/comp2/.cloudbees/workflows/deploy.yaml
+    uses: urvashisingh/comp2/.cloudbees/workflows/deploy-with-strategy.yaml
     with:
       artifact-id: ${{ inputs.artifact-id }}
       environment: ${{ inputs.environment }}
