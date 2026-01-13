@@ -17,22 +17,13 @@ on:
         type: string
         required: true      
 jobs:
-  deploy-using-canary:
-    if: ${{ inputs.environment == 'us-prod' }}
+  deploy:
     vars: inherit
     uses: urvashisingh/comp2/.cloudbees/workflows/deploy.yaml
     with:
       artifact-id: ${{ inputs.artifact-id }}
       environment: ${{ inputs.environment }}
-      deployment-strategy: 'canary'
-  deploy-no-canary:
-    if: ${{ inputs.environment != us-prod' }}
-    vars: inherit
-    uses: urvashisingh/comp2/.cloudbees/workflows/deploy.yaml
-    with:
-      artifact-id: ${{ inputs.artifact-id }}
-      environment: ${{ inputs.environment }}
-      deployment-strategy: 'none'
+      deployment-strategy: ${{ inputs.environment == 'us-prod' && 'canary' || 'none' }}
   #deploy:
   #  vars: inherit
   #  if: ${{ fromJSON(inputs.manifest)['comp1']['rollouts-demo'].deploy }}
