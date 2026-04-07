@@ -11,7 +11,14 @@ on:
       manifest:
         type: string
         required: true
-
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: string
+        required: true
+      manifest:
+        type: string
+        required: true
 jobs:
   comp1-art-sample-go-app:
     if: ${{ fromJSON(inputs.manifest)['comp1']['index.docker.io/cdrosamples/my-sample-go-app'].deploy }}
