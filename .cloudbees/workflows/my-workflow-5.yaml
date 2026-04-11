@@ -22,11 +22,11 @@ metadata:
 jobs:
   us-prod:
     needs: us-test1
-    environment: us-prod
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
+      param1: a
   us-env:
     needs: us-prod
     environment: us-env
