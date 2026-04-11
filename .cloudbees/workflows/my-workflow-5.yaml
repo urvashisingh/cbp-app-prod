@@ -12,7 +12,7 @@ metadata:
   stages/v1alpha1:
     - name: us-test
       jobs:
-        - us-test
+        - us-test1
     - name: us-prod
       jobs:
         - us-prod
@@ -20,24 +20,21 @@ metadata:
       jobs:
         - us-env
 jobs:
-  us-test:
-    environment: us-test
-    uses: ./.cloudbees/workflows/deployer.yaml
-    with:
-      manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
   us-prod:
-    needs:
-      - us-test
+    needs: us-test1
     environment: us-prod
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-env:
-    needs:
-      - us-prod
+    needs: us-prod
     environment: us-env
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ job.environment }}
+  us-test1:
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
