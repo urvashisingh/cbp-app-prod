@@ -26,12 +26,6 @@ jobs:
   #  with:
   #    artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['index.docker.io/cdrosamples/my-sample-go-app'].id }}
   #    environment: ${{ inputs.environment }}
-  comp1-art-sample-go-app:
-    if: ${{ fromJSON(inputs.manifest)['comp1']['index.docker.io/cdrosamples/my-sample-go-app'].deploy }}
-    uses: urvashisingh/comp1/.cloudbees/workflows/deploy.yaml
-    with:
-      artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['index.docker.io/cdrosamples/my-sample-go-app'].id }}
-      environment: ${{ inputs.environment }}
   
   comp2-art2-fe:
     if: ${{ fromJSON(inputs.manifest)['comp2']['art2-fe'].deploy }}
