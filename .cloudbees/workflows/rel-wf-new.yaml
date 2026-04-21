@@ -15,9 +15,11 @@ metadata:
     - name: us-test
       jobs:
         - us-test
+        - enable-flags-synch
     - name: us-prod
       jobs:
         - us-prod
+        - enable-flags-asynch
     - name: us-env
       jobs:
         - us-env
@@ -29,18 +31,33 @@ jobs:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-prod:
-    needs:
-      - us-test
+    needs: enable-flags-synch
     environment: us-prod
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-env:
-    needs:
-      - us-prod
+    needs: enable-flags-asynch
     environment: us-env
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
+  enable-flags-synch:
+    needs: us-test
+    steps:
+      - with:
+          action-name: q
+          version: s
+          url: a
+        uses: cloudbees-io/register-build-artifact@v2
+  enable-flags-asynch:
+    needs:
+      - us-prod
+    steps:
+      - with:
+          action-name: a
+          version: a
+          url: a
+        uses: cloudbees-io/register-build-artifact@v2
