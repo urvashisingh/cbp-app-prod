@@ -75,4 +75,4 @@ jobs:
         uses: cloudbees-io/workflows-dispatch@v1
         with:
           workflows-dispatch-file: $CLOUDBEES_WORKSPACE/dispatch_requests.json
-          token: "${{ secrets.FLAG_WF_PAT }}"
+          token: ${{ secrets.FLAG_WF_PAT }}
