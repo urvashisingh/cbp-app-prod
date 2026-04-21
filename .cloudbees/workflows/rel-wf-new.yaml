@@ -15,11 +15,11 @@ metadata:
     - name: us-test
       jobs:
         - us-test
-        - enable-flags-synch
+        - enable-flags-sync-action-placeholder
     - name: us-prod
       jobs:
         - us-prod
-        - enable-flags-asynch
+        - enable-flags-async-workflow-placeholder
     - name: us-env
       jobs:
         - us-env
@@ -31,20 +31,20 @@ jobs:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-prod:
-    needs: enable-flags-synch
+    needs: enable-flags-sync-action-placeholder
     environment: us-prod
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-env:
-    needs: enable-flags-asynch
+    needs: enable-flags-async-workflow-placeholder
     environment: us-env
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
-  enable-flags-synch-action-placeholder:
+  enable-flags-sync-action-placeholder:
     needs: us-test
     environment: us-test
     steps:
@@ -52,7 +52,7 @@ jobs:
         shell: sh
         run: |
           echo "TODO: Get flags associated with currrent release and enable them for the job's enviroment ${{ job.environment }}"
-  enable-flags-asynch-workflow-placeholder:
+  enable-flags-async-workflow-placeholder:
     needs: us-prod
     environment: us-prod
     steps:
