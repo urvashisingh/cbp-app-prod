@@ -53,7 +53,7 @@ jobs:
         run: |
           echo "TODO: Get flags associated with currrent release and enable them for the job's enviroment ${{ job.environment }}"
   enable-flags-asynch-workflow-placeholder:
-    needs:us-prod
+    needs: us-prod
     environment: us-prod
     steps:
       - name: Get release flags and construct workflow dispatch file
@@ -71,9 +71,8 @@ jobs:
             }
           }]
           EOF
-          
-    - name: Launch flag rollout workflow
-      uses: cloudbees-io/workflows-dispatch@v1
-      with:
-        workflows-dispatch-file: $CLOUDBEES_WORKSPACE/dispatch_requests.json
-        token: "${{ secrets.FLAG_WF_PAT }}"
+      - name: Launch flag rollout workflow
+        uses: cloudbees-io/workflows-dispatch@v1
+        with:
+          workflows-dispatch-file: $CLOUDBEES_WORKSPACE/dispatch_requests.json
+          token: "${{ secrets.FLAG_WF_PAT }}"
