@@ -1,0 +1,78 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: release wf with flags orchestration 
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        type: string
+        required: true
+        description: This is a system-generated parameter and is required for use in application releases. Refer to https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest for the expected format
+      test:
+        type: string
+metadata:
+  stages/v1alpha1:
+    - name: us-test
+      jobs:
+        - us-test
+        - enable-flags-sync-action-placeholder
+    - name: us-prod
+      jobs:
+        - us-prod
+        - enable-flags-async-workflow-placeholder
+    - name: us-env
+      jobs:
+        - us-env
+jobs:
+  us-test:
+    environment: us-test
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ job.environment }}
+  us-prod:
+    needs: enable-flags-sync-action-placeholder
+    environment: us-prod
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ job.environment }}
+  us-env:
+    needs: enable-flags-async-workflow-placeholder
+    environment: us-env
+    uses: ./.cloudbees/workflows/deployer.yaml
+    with:
+      manifest: ${{ inputs.manifest }}
+      environment: ${{ job.environment }}
+  enable-flags-sync-action-placeholder:
+    needs: us-test
+    environment: us-test
+    steps:
+      - uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "TODO: Get flags associated with currrent release and enable them for the job's enviroment ${{ job.environment }}"
+  enable-flags-async-workflow-placeholder:
+    needs: us-prod
+    environment: us-prod
+    steps:
+      - name: Get release flags and construct workflow dispatch file
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "TODO: Get flags associated with currrent release for the flag rollout workflow to use"
+          echo "Construct workflow dispatch file..."
+          cat <<EOF > $CLOUDBEES_WORKSPACE/dispatch_requests.json
+          [{
+            "workflow_file_name": "flags-rollout.yaml",
+            "inputs": {
+              "environment": "${{ job.environment }}",
+              "flags": "f1,f2,f3"
+            }
+          }]
+          EOF
+      - name: Launch flag rollout workflow
+        uses: cloudbees-io/workflows-dispatch@v1
+        with:
+          workflows-dispatch-file: $CLOUDBEES_WORKSPACE/dispatch_requests.json
+          token: ${{ secrets.FLAG_WF_PAT }}
