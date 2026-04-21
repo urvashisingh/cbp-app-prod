@@ -44,20 +44,36 @@ jobs:
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
-  enable-flags-synch:
+  enable-flags-synch-action-placeholder:
     needs: us-test
+    environment: us-test
     steps:
-      - with:
-          action-name: q
-          version: s
-          url: a
-        uses: cloudbees-io/register-build-artifact@v2
-  enable-flags-asynch:
-    needs:
-      - us-prod
+      - uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "TODO: Get flags associated with currrent release and enable them for the job's enviroment ${{ job.environment }}"
+  enable-flags-asynch-workflow-placeholder:
+    needs:us-prod
+    environment: us-prod
     steps:
-      - with:
-          action-name: a
-          version: a
-          url: a
-        uses: cloudbees-io/register-build-artifact@v2
+      - name: Get release flags and construct workflow dispatch file
+        uses: docker://golang:1.20.3-alpine3.17
+        shell: sh
+        run: |
+          echo "TODO: Get flags associated with currrent release for the flag rollout workflow to use"
+          echo "Construct workflow dispatch file..."
+          cat <<EOF > $CLOUDBEES_WORKSPACE/dispatch_requests.json
+          [{
+            "workflow_file_name": "flags-rollout.yaml",
+            "inputs": {
+              "environment": "${{ job.environment }}",
+              "flags": "f1,f2,f3"
+            }
+          }]
+          EOF
+          
+    - name: Launch flag rollout workflow
+      uses: cloudbees-io/workflows-dispatch@v1
+      with:
+        workflows-dispatch-file: $CLOUDBEES_WORKSPACE/dispatch_requests.json
+        token: "${{ secrets.FLAG_WF_PAT }}"
