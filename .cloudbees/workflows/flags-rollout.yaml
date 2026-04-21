@@ -14,10 +14,12 @@ jobs:
   rollout-flags:
     steps:
       - uses: docker://golang:1.20.3-alpine3.17
+        name: Step 1
         shell: sh
         run: |
           echo "Step 1 to rollout flags ${{ inputs.flags }} for enviroment ${{ inputs.environment }}"
       - uses: docker://golang:1.20.3-alpine3.17
+        name: Step 2
         shell: sh
         run: |
           echo "Step 2 to rollout flags ${{ inputs.flags }} for enviroment ${{ inputs.environment }}"    
