@@ -30,7 +30,7 @@ jobs:
       disallowLaunchByUser: false
       notifyAllEligibleUsers: false
   qe-validation-signoff:
-    uses: ./.cloudbees/workflows/qa-approval-with-notification.yaml
+    uses: ./.cloudbees/workflows/my-workflow-2.yaml
     secrets: inherit
     vars: inherit
   prod-deployment-validation:
@@ -74,7 +74,8 @@ jobs:
     needs:
       - prepare-manifest
     steps:
-      - uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
+      - name: prep
+        uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
         shell: sh
         run: echo "Hello W"
   qa-test-tracker:
