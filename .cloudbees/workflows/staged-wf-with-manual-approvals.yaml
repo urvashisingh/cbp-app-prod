@@ -7,38 +7,82 @@ on:
       manifest:
         type: string
         required: true
-        description: This is a system-generated parameter and is required for use in application releases. Refer to https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest for the expected format
 metadata:
   stages/v1alpha1:
-    - name: us-test
+    - name: QA
       jobs:
-        - us-test
-    - name: us-prod
+        - qe-validation-signoff
+        - qa-test-tracker
+    - name: Prod
       jobs:
-        - us-prod
-    - name: us-env
-      jobs:
-        - us-env
+        - sre-approval
+        - prepare-manifest
+        - prod-deployment
+        - prod-deployment-validation
+
 jobs:
-  us-test:
-    environment: us-test
-    uses: ./.cloudbees/workflows/deployer.yaml
+  sre-approval:
+    needs: qa-test-tracker
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
     with:
-      manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
-  us-prod:
+      instructions: Deployments to production require an SRE approval.
+      disallowLaunchByUser: false
+      notifyAllEligibleUsers: false
+  qe-validation-signoff:
+    uses: ./.cloudbees/workflows/qa-approval-with-notification.yaml
+    secrets: inherit
+    vars: inherit
+  prod-deployment-validation:
+    needs: prod-deployment
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: >
+        Review the post-release status (quality or manual verifications as
+        needed) and approve or reject. If this release is rejected, it will
+        trigger a rollback process.
+
+
+        If there are any failed tests, review if they failures are real or
+        ignorable.  If you approve with test failures, you must provide a reason
+        for why this is acceptable.
+      disallowLaunchByUser: false
+      notifyAllEligibleUsers: false
+      approvalInputs: >
+        validation-details:
+          type: string
+          required: true
+          description: Enter the URL or summary of the production validation test results.
+  prepare-manifest:
+    needs: sre-approval
+    outputs:
+      manifest: ${{ steps.set-manifest.outputs.manifest }}
+    steps:
+      - name: Set manifest
+        id: set-manifest
+        uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
+        shell: sh
+        run: >
+          echo ${{ toJSON(inputs.manifest) }} > /tmp/manifest.json
+
+          echo "Input Manifest:"
+
+          cat /tmp/manifest.json  | tr -d '\n' > $CLOUDBEES_OUTPUTS/manifest
+
+  prod-deployment:
     needs:
-      - us-test
-    environment: us-prod
-    uses: ./.cloudbees/workflows/deployer.yaml
-    with:
-      manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
-  us-env:
+      - prepare-manifest
+    uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
+    shell: sh
+    run: echo "Hello W"
+  qa-test-tracker:
     needs:
-      - us-prod
-    environment: us-env
-    uses: ./.cloudbees/workflows/deployer.yaml
-    with:
-      manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
+      - qe-validation-signoff
+    environment: qa
+    steps:
+      - name: test-tracker
+        kind: test
+        uses: docker://golang:1.20.3-alpine3.17
+        run: echo "Tests were run and validated"
+        shell: sh
