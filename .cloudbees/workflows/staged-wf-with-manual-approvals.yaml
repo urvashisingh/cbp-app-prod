@@ -73,9 +73,10 @@ jobs:
   prod-deployment:
     needs:
       - prepare-manifest
-    uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
-    shell: sh
-    run: echo "Hello W"
+    steps:
+      - uses: docker://ghcr.io/helmfile/helmfile:v1.1.2
+        shell: sh
+        run: echo "Hello W"
   qa-test-tracker:
     needs:
       - qe-validation-signoff
