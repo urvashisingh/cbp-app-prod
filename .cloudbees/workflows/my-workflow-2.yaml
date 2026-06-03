@@ -10,7 +10,14 @@ on:
       - "**"
   workflow_dispatch:    
 jobs:
+  approval:
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: Deployments to production require an SRE approval.
+      disallowLaunchByUser: false
+      notifyAllEligibleUsers: false
   job1:
+    needs: approval
     steps:
       - name: Say hello
         run: |
