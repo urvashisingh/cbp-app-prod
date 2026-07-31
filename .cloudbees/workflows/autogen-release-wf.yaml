@@ -21,24 +21,21 @@ metadata:
         - us-env
 jobs:
   us-test:
-    environment: us-test
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
+      environment: us-test
   us-prod:
     needs:
       - us-test
-    environment: us-prod
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
+      environment: us-prod
   us-env:
     needs:
       - us-prod
-    environment: us-env
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
-      environment: ${{ job.environment }}
+      environment: us-env
