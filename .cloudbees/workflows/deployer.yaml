@@ -11,6 +11,9 @@ on:
       manifest:
         type: string
         required: true
+    secrets:
+      env-secret: {required: true}
+
   workflow_dispatch:
     inputs:
       environment:
@@ -33,16 +36,22 @@ jobs:
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-fe'].id }}
       environment: ${{ inputs.environment }}
+    secrets: inherit
+
   comp2-art2-be:
     if: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].deploy }}
     uses: urvashisingh/comp2/.cloudbees/workflows/deploy.yaml
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].id }}
       environment: ${{ inputs.environment }}
+    secrets: inherit
+
   comp1-art1:
     if: ${{ fromJSON(inputs.manifest)['comp1']['art1'].deploy }}
     uses: JCWook/sample-go-app/.cloudbees/workflows/deploy.yaml@main
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['art1'].id }}
       environment: ${{ inputs.environment }}
+    secrets:
+      env-secret: ${{ secrets.env-secret }}  
 
