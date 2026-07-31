@@ -41,8 +41,8 @@ jobs:
       environment: ${{ inputs.environment }}
   comp1-art1:
     if: ${{ fromJSON(inputs.manifest)['comp1']['art1'].deploy }}
-    uses: JCWook/sample-go-app/.cloudbees/workflows/deploy.yaml
+    uses: JCWook/sample-go-app/.cloudbees/workflows/deploy.yaml@stem
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['art1'].id }}
-      env: ${{ inputs.environment }}
+      environment: ${{ inputs.environment }}
 
