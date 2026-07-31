@@ -39,4 +39,10 @@ jobs:
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].id }}
       environment: ${{ inputs.environment }}
+  comp1-art1:
+    if: ${{ fromJSON(inputs.manifest)['comp1']['art1'].deploy }}
+    uses: JCWook/sample-go-app/.cloudbees/workflows/deploy.yaml
+    with:
+      artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['art1'].id }}
+      environment: ${{ inputs.environment }}
 
