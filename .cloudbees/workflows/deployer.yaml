@@ -12,7 +12,7 @@ on:
         type: string
         required: true
     secrets:
-      env-secret: 
+      env_secret: 
         required: true
 
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-fe'].id }}
       environment: ${{ inputs.environment }}
     secrets:
-      env-secret: ${{ secrets.env-secret }}
+      env_secret: ${{ secrets.env_secret }}
 
   comp2-art2-be:
     if: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].deploy }}
@@ -47,7 +47,7 @@ jobs:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].id }}
       environment: ${{ inputs.environment }}
     secrets:
-      env-secret: ${{ secrets.env-secret }}
+      env_secret: ${{ secrets.env_secret }}
 
   comp1-art1:
     if: ${{ fromJSON(inputs.manifest)['comp1']['art1'].deploy }}
@@ -56,5 +56,5 @@ jobs:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['art1'].id }}
       environment: ${{ inputs.environment }}
     secrets:
-      env-secret: ${{ secrets.env-secret }}  
+      env_secret: ${{ secrets.env_secret }}  
 
