@@ -11,8 +11,6 @@ on:
       manifest:
         type: string
         required: true
-    secrets:
-      env-secret: {required: true}
 
   workflow_dispatch:
     inputs:
