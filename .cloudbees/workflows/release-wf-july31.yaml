@@ -26,6 +26,7 @@ jobs:
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
+    secrets: inherit  
   us-prod:
     needs:
       - us-test
@@ -34,6 +35,7 @@ jobs:
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
+    secrets: inherit  
   us-env:
     needs:
       - us-prod
@@ -42,3 +44,4 @@ jobs:
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
+    secrets: inherit  
