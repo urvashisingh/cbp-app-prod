@@ -27,7 +27,8 @@ jobs:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
     secrets:
-      env_secret: ${{ secrets.env_secret }}  
+      env_secret: ${{ secrets.env_secret }} 
+      env_secret2: ${{ secrets.env_secret2 }} 
   us-prod:
     needs:
       - us-test
@@ -38,6 +39,7 @@ jobs:
       environment: ${{ job.environment }}
     secrets:
       env_secret: ${{ secrets.env_secret }}
+      env_secret2: ${{ secrets.env_secret2 }}
   us-env:
     needs:
       - us-prod
@@ -48,3 +50,4 @@ jobs:
       environment: ${{ job.environment }}
     secrets:
       env_secret: ${{ secrets.env_secret }}  
+      env_secret2: ${{ secrets.env_secret2 }}
