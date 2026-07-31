@@ -14,6 +14,8 @@ on:
     secrets:
       env_secret: 
         required: true
+      env_secret2: 
+        required: true        
 
   workflow_dispatch:
     inputs:
@@ -39,6 +41,7 @@ jobs:
       environment: ${{ inputs.environment }}
     secrets:
       env_secret: ${{ secrets.env_secret }}
+      env_secret2: ${{ secrets.env_secret2 }}
 
   comp2-art2-be:
     if: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].deploy }}
@@ -48,6 +51,7 @@ jobs:
       environment: ${{ inputs.environment }}
     secrets:
       env_secret: ${{ secrets.env_secret }}
+      env_secret2: ${{ secrets.env_secret2 }}
 
   comp1-art1:
     if: ${{ fromJSON(inputs.manifest)['comp1']['art1'].deploy }}
@@ -57,4 +61,5 @@ jobs:
       environment: ${{ inputs.environment }}
     secrets:
       env_secret: ${{ secrets.env_secret }}  
+      env_secret2: ${{ secrets.env_secret2 }}
 
