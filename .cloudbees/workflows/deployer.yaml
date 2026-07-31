@@ -11,6 +11,9 @@ on:
       manifest:
         type: string
         required: true
+    secrets:
+      env-secret: 
+        required: true
 
   workflow_dispatch:
     inputs:
@@ -34,7 +37,8 @@ jobs:
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-fe'].id }}
       environment: ${{ inputs.environment }}
-    secrets: inherit
+    secrets:
+      env-secret: ${{ secrets.env-secret }}
 
   comp2-art2-be:
     if: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].deploy }}
@@ -42,7 +46,8 @@ jobs:
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp2']['art2-be'].id }}
       environment: ${{ inputs.environment }}
-    secrets: inherit
+    secrets:
+      env-secret: ${{ secrets.env-secret }}
 
   comp1-art1:
     if: ${{ fromJSON(inputs.manifest)['comp1']['art1'].deploy }}
