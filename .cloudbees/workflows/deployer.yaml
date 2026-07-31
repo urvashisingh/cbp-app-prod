@@ -44,5 +44,5 @@ jobs:
     uses: JCWook/sample-go-app/.cloudbees/workflows/deploy.yaml
     with:
       artifact-id: ${{ fromJSON(inputs.manifest)['comp1']['art1'].id }}
-      environment: ${{ inputs.environment }}
+      env: ${{ inputs.environment }}
 
