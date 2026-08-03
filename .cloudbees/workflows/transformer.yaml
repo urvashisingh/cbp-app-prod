@@ -30,9 +30,10 @@ jobs:
     with:
       param1: ${{ inputs.param1 }}
       dev_environment: us-dev
+      us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
       us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}
-    secrets:
-      # work-around 
-      us_dev_secret1: ${{ format('{0}', needs.dev-extract.outputs.secret1) }}
+    # does not work
+    #secrets:
+    #  us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
     #vars: 
     #  us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}  
