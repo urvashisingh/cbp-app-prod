@@ -21,7 +21,7 @@ jobs:
           echo "env_prop: ${{ vars.env_prop }}"
           echo "env_secret: ${{ secrets.env_secret }}"
           echo "${{ vars.env_prop }}" > $CLOUDBEES_OUTPUTS/env_prop
-          echo "${{ secrets.env_secret }}" > $CLOUDBEES_OUTPUTS/secret1      
+          echo "${{ secrets.env_secret }}" > $CLOUDBEES_OUTPUTS/env_secret      
 
   #transform:
   # needs:
