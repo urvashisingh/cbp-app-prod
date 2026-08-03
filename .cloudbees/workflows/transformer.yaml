@@ -7,6 +7,7 @@ on:
       param1:
         type: string
         required: true
+        default: foo
 jobs:
   dev-extract:
     environment: us-dev
