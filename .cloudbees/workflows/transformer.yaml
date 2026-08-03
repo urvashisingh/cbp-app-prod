@@ -32,8 +32,18 @@ jobs:
       dev_environment: us-dev
       us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
       us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}
-    # does not work
+    
+    # inherit and mappings works for org properties and secrets
+    # use explicit mapping as a best practice. This is just to demo 
+    # org property and secret inheritence works across scm org
+    vars: inherit
+    secrets: inherit
+
+    # this does not work
     #secrets:
     #  us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
     #vars: 
     #  us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}  
+    #
+    
+
