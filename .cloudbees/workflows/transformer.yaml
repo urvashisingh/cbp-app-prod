@@ -30,7 +30,7 @@ jobs:
     with:
       param1: ${{ inputs.param1 }}
       dev_environment: us-dev
-      us_dev_prop1: ${{ needs.dev-extract.outputs.prop1
+      us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}
     secrets: 
       us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
     #vars: 
