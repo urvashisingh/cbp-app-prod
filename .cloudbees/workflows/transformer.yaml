@@ -23,14 +23,15 @@ jobs:
           echo "${{ vars.env_prop }}" > $CLOUDBEES_OUTPUTS/env_prop
           echo "${{ secrets.env_secret }}" > $CLOUDBEES_OUTPUTS/env_secret      
 
-  #transform:
-  # needs:
-  #   - dev-extract    
-  #  uses: JCWook/sample-go-app/.cloudbees/workflows/special-release-pipeline.yaml@main
-  #  with:
-  #    param1: ${{ inputs.param1 }}
-  #    dev_environment: us-dev
-  #  secrets: 
-  #    us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
-  #  vars: 
-  #    us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}  
+  transform:
+    needs:
+      - dev-extract    
+    uses: JCWook/sample-go-app/.cloudbees/workflows/special-release-pipeline.yaml@main
+    with:
+      param1: ${{ inputs.param1 }}
+      dev_environment: us-dev
+      us_dev_prop1: ${{ needs.dev-extract.outputs.prop1
+    secrets: 
+      us_dev_secret1: ${{ needs.dev-extract.outputs.secret1 }}
+    #vars: 
+    #  us_dev_prop1: ${{ needs.dev-extract.outputs.prop1 }}  
