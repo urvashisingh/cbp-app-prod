@@ -2,6 +2,7 @@ apiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
 name: My workflow
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       manifest:
@@ -11,6 +12,7 @@ on:
           application releases. Refer to
           https://docs.cloudbees.com/docs/cloudbees-platform/latest/applications/releases#manifest
           for the expected format
+
 metadata:
   stages/v1alpha1:
     - name: us-test
