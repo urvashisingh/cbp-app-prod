@@ -17,6 +17,7 @@ metadata:
     - name: us-prod
       jobs:
         - us-prod
+        - job2
     - name: us-env
       jobs:
         - us-env
@@ -37,7 +38,9 @@ jobs:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
   us-env:
-    needs: us-prod
+    needs:
+      - job2
+      - us-prod
     environment: us-env
     uses: ./.cloudbees/workflows/deployer.yaml
     with:
@@ -51,3 +54,11 @@ jobs:
           s3-path: a
         uses: cloudbees-io/s3-download-object@v1
         name: a
+  job2:
+    steps:
+      - with:
+          bucket-name: q
+          file-path: q
+          s3-path: q
+        uses: cloudbees-io/s3-upload-object@v1
+        name: q
