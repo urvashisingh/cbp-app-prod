@@ -36,6 +36,7 @@ jobs:
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
+      param1: val1
   us-env:
     needs: us-prod
     environment: us-env
