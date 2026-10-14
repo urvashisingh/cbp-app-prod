@@ -31,8 +31,8 @@ jobs:
     needs:
       - job1
       - us-test
+    uses: ./.cloudbees/workflows/deployer1.yaml
     environment: us-prod
-    uses: ./.cloudbees/workflows/deployer.yaml
     with:
       manifest: ${{ inputs.manifest }}
       environment: ${{ job.environment }}
